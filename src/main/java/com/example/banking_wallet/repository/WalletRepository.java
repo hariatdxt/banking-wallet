@@ -21,9 +21,3 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
             @Param("walletId") Long walletId
     );
 }
-//What does this query do?
-//The query fetches the wallet and requests a database-level write lock on its row.
-//
-//When the service calls findByIdForUpdate(), the database protects that row until the surrounding transaction completes.
-//
-//This lock is useful only when called within an appropriate transaction, so we'll invoke it from a service method annotated with Spring's @Transactional.

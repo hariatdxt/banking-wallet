@@ -63,8 +63,6 @@ public class WalletService {
     }
 
 
-
-
     public WalletDetailsResponse getWalletDetails(Long walletId) {
 
         Wallet wallet = walletRepository.findById(walletId)
@@ -77,8 +75,6 @@ public class WalletService {
                 wallet.getBalance()
         );
     }
-
-
 
 
     @Transactional
@@ -128,9 +124,6 @@ public class WalletService {
     }
 
 
-
-
-
     @Transactional
     public TransferResponse transfer(TransferRequest request) {
 
@@ -138,15 +131,12 @@ public class WalletService {
         Long toWalletId = request.toWalletId();
         BigDecimal amount = request.amount();
 
-        // 1. A wallet cannot transfer money to itself.
         if (fromWalletId.equals(toWalletId)) {
             throw new IllegalArgumentException(
                     "Sender and receiver wallets must be different"
             );
         }
 
-        // 2. Lock both wallets in ascending ID order.
-        // This helps reduce deadlocks when opposite-direction transfers occur.
         Long firstWalletId = Math.min(fromWalletId, toWalletId);
         Long secondWalletId = Math.max(fromWalletId, toWalletId);
 
@@ -156,7 +146,6 @@ public class WalletService {
         Wallet secondWallet = walletRepository.findByIdForUpdate(secondWalletId)
                 .orElseThrow(() -> new WalletNotFoundException(secondWalletId));
 
-        // Identify the sender and receiver after locking both rows.
         Wallet sender = fromWalletId.equals(firstWalletId)
                 ? firstWallet
                 : secondWallet;
@@ -165,7 +154,6 @@ public class WalletService {
                 ? firstWallet
                 : secondWallet;
 
-        // 3. Check that the sender has enough money.
         BigDecimal senderPreviousBalance = sender.getBalance();
 
         if (senderPreviousBalance.compareTo(amount) < 0) {
@@ -174,31 +162,26 @@ public class WalletService {
             );
         }
 
-        // 4. Calculate both balances.
         BigDecimal senderCurrentBalance =
                 senderPreviousBalance.subtract(amount);
 
         BigDecimal receiverCurrentBalance =
                 receiver.getBalance().add(amount);
 
-        // 5. Check the receiver's maximum supported balance.
         if (receiverCurrentBalance.compareTo(MAX_BALANCE) > 0) {
             throw new IllegalArgumentException(
                     "Transfer would exceed the maximum supported wallet balance"
             );
         }
 
-        // 6. Update both wallet balances.
         sender.setBalance(senderCurrentBalance);
         receiver.setBalance(receiverCurrentBalance);
 
         walletRepository.save(sender);
         walletRepository.save(receiver);
 
-        // 7. Generate one reference shared by both history records.
         String referenceId = UUID.randomUUID().toString();
 
-        // 8. Record the sender's outgoing transaction.
         WalletTransaction outgoingTransaction =
                 walletTransactionRepository.saveAndFlush(
                         new WalletTransaction(
@@ -210,7 +193,6 @@ public class WalletService {
                         )
                 );
 
-        // 9. Record the receiver's incoming transaction.
         WalletTransaction incomingTransaction =
                 new WalletTransaction(
                         receiver,
@@ -222,7 +204,6 @@ public class WalletService {
 
         walletTransactionRepository.save(incomingTransaction);
 
-        // 10. Return the outgoing transaction's ID.
         return new TransferResponse(
                 outgoingTransaction.getId(),
                 sender.getId(),
