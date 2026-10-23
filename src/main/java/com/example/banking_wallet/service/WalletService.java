@@ -82,14 +82,11 @@ public class WalletService {
 
 
 
-        // 1. Find and lock the wallet row.
         Wallet wallet = walletRepository.findByIdForUpdate(walletId)
                 .orElseThrow(() -> new WalletNotFoundException(walletId));
 
-        // 2. Capture the balance before changing it.
         BigDecimal previousBalance = wallet.getBalance();
 
-        // 3. Calculate the new balance using BigDecimal.
         BigDecimal amount = request.amount();
         BigDecimal currentBalance = previousBalance.add(amount);
 
@@ -99,11 +96,9 @@ public class WalletService {
             );
         }
 
-        // 4. Update the wallet.
         wallet.setBalance(currentBalance);
         walletRepository.save(wallet);
 
-        // 5. Record the deposit in transaction history.
         WalletTransaction transaction = new WalletTransaction(
                 wallet,
                 WalletTransactionType.DEPOSIT,
@@ -114,7 +109,6 @@ public class WalletService {
 
         walletTransactionRepository.save(transaction);
 
-        // 6. Return the operation result.
         return new DepositResponse(
                 wallet.getId(),
                 previousBalance,
@@ -222,17 +216,14 @@ public class WalletService {
             Long walletId
     ) {
 
-        // 1. Verify that the wallet exists.
         if (!walletRepository.existsById(walletId)) {
             throw new WalletNotFoundException(walletId);
         }
 
-        // 2. Retrieve transactions, newest first.
         return walletTransactionRepository
                 .findByWallet_IdOrderByCreatedAtDescIdDesc(walletId)
                 .stream()
 
-                // 3. Convert each entity into the API response DTO.
                 .map(transaction -> new TransactionHistoryResponse(
                         transaction.getId(),
                         transaction.getType(),
@@ -241,7 +232,6 @@ public class WalletService {
                         transaction.getCreatedAt()
                 ))
 
-                // 4. Collect the results into a list.
                 .toList();
     }
 }
