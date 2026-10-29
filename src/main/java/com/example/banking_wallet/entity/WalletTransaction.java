@@ -27,7 +27,7 @@ public class WalletTransaction {
     @Column(nullable = false, length = 20)
     private String status;
 
-    @Column(name = "reference_id", length = 100 ,unique=true)
+    @Column(name = "reference_id", length = 100)
     private String referenceId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
